@@ -24,6 +24,11 @@ INNER JOIN #orders ON #order_details.OrderId = #orders.Id
 GROUP BY #orders.ShipCity 
 HAVING #orders.ShipCity LIKE 'London'
 
+
+-- Byt ut 0.77
+-- cast((select count(*) from company.product) as float)
+
+
 -- 2)
 -- Till vilken stad har vi levererat flest unika produkter?
 
@@ -43,14 +48,17 @@ ORDER BY [Andel av Unika Producter] DESC
 -- (!) Kunde inte hitta UnitsSold så multiplicerade Freight med UnitPrice
 SELECT TOP 1 
     #orders.ShipCountry AS [Country], 
-    ROUND( SUM(CASE WHEN #products.Discontinued = 1 THEN #orders.Freight*#products.UnitPrice ELSE 0 END), 0) AS [Sold For]
+    ROUND( SUM(CASE WHEN #products.Discontinued = 1 THEN #order_details.Quantity*#products.UnitPrice ELSE 0 END), 0) AS [Sold For]
 FROM #products
 INNER JOIN #order_details ON #products.Id = #order_details.ProductId
 INNER JOIN #orders ON #order_details.OrderId = #orders.Id
 GROUP BY #orders.ShipCountry
 HAVING #orders.ShipCountry LIKE 'Germany'
 
-
+-- SUM(.UnitPrice * Quantity)
+-- *discount
+-- WHERE ShipCountry='Germany' AND #products.Distcontinued = 1
+-- Tror jag fick för högt värde så dubbelkolla att du inte får alla 
 
 -- 4)
 -- För vilken produktkategori har vi högst lagervärde?
@@ -70,10 +78,13 @@ INNER JOIN #categories ON #categories.Id = #products.CategoryId
 GROUP BY #categories.CategoryName
 ORDER BY [UnitsInStock]
 
+-- Rapahael fick ut seafod som högst lagervärde
+-- Du kan även skriva din sum i order by vilkoret
+
 -- 5) 
 -- Från vilken leverantör har vi sålt flest 
 -- produkter totalt under sommaren 2013?
-SELECT * INTO #suppliers FROM 
+SELECT * INTO #suppliers FROM company.suppliers
 
 SELECT TOP 1
     #categories.CategoryName, 
@@ -87,10 +98,55 @@ INNER JOIN #categories ON #categories.Id = #products.CategoryId
 GROUP BY #categories.CategoryName
 ORDER BY [UnitsInStock]
 
+-- Rapahaels version
+SELECT 
+    #supliers.CompanyName,
+    SUM(order_details.Quantity)
+FROM #orders
+    JOIN #order_details ON #order_details.OrderID = #orders.id
+    JOIN #products ON #orders.OrderId = #products.Id
+    JOIN #supliers ON #products.SupplierId = #supliers.Id
+WHERE orders.OrderDate >= '2013-06-01' and orders.OrderDate <= '2013-09-91'
+-- WHERE CAST(orders.OrrderDate)
+GROUP BY
+    #supliers.CompanyName
+ORDER BY 
+    'Sales' desc
+
 SELECT * FROM company.suppliers
 SELECT * FROM company.employees
 SELECT * FROM #orders
 -- MUSIC --
+
+-- 0)
+-- Använd dig av tabellerna från schema "music", och utgå från:
+
+SELECT * FROM music.genres; 
+DECLARE @playlist nvarchar(max) = 'Heavy metal Classic'
+
+SELECT
+    g.Name as 'Genre',
+    ar.Name as 'Artist',
+    ab.Title as 'Album',
+    mt.Name as 'Track',
+    format(dateadd(MILLISECOND, mt.Milliseconds, 0), 'mm:ss') as 'Duration',
+    format(mt.Bytes / power(1024, 2), 'N1') + 'MB',
+    isnull(Composer, 'N/A') as 'Composer'
+
+FROM
+    music.tracks mt
+    JOIN music.genres g ON mt.Genreid = g.GenreId 
+    JOIN music.albums ab ON ab.AlbumId = mt.AlbumId
+    JOIN music.artists ar ON ab.ArtistId = ar.ArtistId 
+
+-- JOIN music.playlist_track pt on pt.TrackId = mt.TrackId
+-- JOIN music.playlists p on p.PlaylistId = pt.PlaylistId
+-- WHERE
+-- p.Name = @playlist
+-- ORDER BY 
+-- g.Name, ar.Name, ab.Title
+
+
 -- 1)
 -- Av alla audiospår, vilken artist har längst total speltid? 
 SELECT * INTO #artists FROM music.artists

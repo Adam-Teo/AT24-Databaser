@@ -431,3 +431,41 @@ DECLARE @key AS VARCHAR(MAX)
 SET @key = LOWER(CONVERT(VARCHAR(32), REPLACE(NEWID(), '-', '')))
 PRINT LEN('1bf3fa859c48593f5f2606ccbaf2f30e')
 newid()
+
+
+DECLARE @password AS VARCHAR(MAX)
+SET @password = LOWER(CONVERT(VARCHAR(32), REPLACE(NEWID(), '-', '')))
+PRINT @password
+
+-- Aggregering 
+
+PRINT GETDATE() - '1985-10-26'
+
+PRINT format(25.685, 'N2') 
+
+
+
+with SeasonSummary as (
+    select
+        Season, 
+        MIN([Original air date]), 
+        MAX([Original ari date]), 
+        COUNT(*) AS EpisodeCount, 
+        AVG([U.S. viewers(millions)]) AS AvgViewrs,
+        FROM #GOT
+        GROUP BY
+            SEASON 
+)
+SELECT @output = @output + 
+    'Säsong' + cast(Season as VARCHAR) + 'sändes från' + 
+    FORMAT(StartDate, 'MMMM', 'sv') + ' till ' + 
+    format(EndDate, 'Y', 'sv') + '.' +
+    'Totalat sändes' + CAST(EpisodeCount as VARCHAR) + ' avsnitt, som i genomsnitt sågs av ' +
+    CAST (CAST (CAST(AngViewers AS FLOAT) AS VARCHAR ) AS DECIMAL(10, 2)) + ' miljoner människor i USA.' + CHAR(13) + CHAR(10)
+FROM SeasonSummary
+ORDER BY Season
+
+datediff(day, convert(date, left(ID,6)), getdate()) / 365.25 AS 'Ålder'
+
+
+-- JOIN
